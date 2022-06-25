@@ -2,4 +2,5 @@ target/
 *.log
 logs/
 *.iml
+.idea/
 
