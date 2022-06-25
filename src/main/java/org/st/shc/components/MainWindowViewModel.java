@@ -6,7 +6,11 @@ import javafx.beans.property.SimpleStringProperty;
 import lombok.extern.slf4j.Slf4j;
 import org.st.shc.framework.concurrent.ExecutorsBuilder;
 import org.st.shc.framework.concurrent.ThreadFactoryWithThreadId;
+import org.st.shc.services.HttpClientRequest;
+import org.st.shc.services.HttpClientService;
 
+import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -22,13 +26,21 @@ public class MainWindowViewModel {
             })
             .build();
 
-    private final SimpleStringProperty username = new SimpleStringProperty();
+    private final SimpleStringProperty username = new SimpleStringProperty("");
 
-    private final SimpleStringProperty password = new SimpleStringProperty();
+    private final SimpleStringProperty password = new SimpleStringProperty("");
+
+    private final SimpleStringProperty url = new SimpleStringProperty("");
+
+    private final SimpleStringProperty result = new SimpleStringProperty("");
 
     private final SimpleBooleanProperty submitting = new SimpleBooleanProperty(false);
 
-    public MainWindowViewModel() {
+    private final HttpClientService httpClientService;
+
+    public MainWindowViewModel(HttpClientService httpClientService) {
+        this.httpClientService = httpClientService;
+
         this.username.addListener((observable, oldValue, newValue) -> {
             log.info("oldValue: {}", oldValue);
             log.info("newValue: {}", newValue);
@@ -79,7 +91,54 @@ public class MainWindowViewModel {
         return submitting;
     }
 
+    public String getUrl() {
+        return url.get();
+    }
+
+    public SimpleStringProperty urlProperty() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url.set(url);
+    }
+
+    public String getResult() {
+        return result.get();
+    }
+
+    public SimpleStringProperty resultProperty() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result.set(result);
+    }
+
     public void doSubmit() {
         this.submitting.set(true);
+        this.result.set("");
+
+        String u = this.url.get();
+        if (!u.startsWith("http")) {
+            u = "http://" + u;
+        }
+        CompletableFuture<HttpResponse<String>> future =
+                httpClientService.httpCall(HttpClientRequest.builder()
+                        .setUrl(u)
+                        .build());
+
+        future.whenComplete((resp, e) -> {
+            String body;
+            if (e != null) {
+                body = e.toString();
+            } else {
+                body = resp.body();
+            }
+            Platform.runLater(() -> {
+                this.submitting.set(false);
+                this.result.set(body);
+            });
+        });
     }
 }

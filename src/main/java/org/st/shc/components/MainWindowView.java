@@ -30,6 +30,9 @@ public class MainWindowView extends GridPane {
     private TextField username;
     private Label passwordLabel;
     private PasswordField password;
+    private Label urlLabel;
+    private TextField url;
+    private Label resultLabel;
     private Button submit;
     private Label labelSubmitting;
 
@@ -55,6 +58,9 @@ public class MainWindowView extends GridPane {
         password = new PasswordField();
         submit = new Button("登陆");
         labelSubmitting = new Label("");
+        urlLabel = new Label("URL");
+        url = new TextField();
+        resultLabel = new Label("");
     }
 
     private void initLayout() {
@@ -69,12 +75,15 @@ public class MainWindowView extends GridPane {
         this.add(username, 1, 1);
         this.add(passwordLabel, 0, 2);
         this.add(password, 1, 2);
+        this.add(urlLabel, 0, 3);
+        this.add(url, 1, 3);
+        this.add(resultLabel, 0, 4, 2, 1);
         HBox hBox = new HBox(10);
         hBox.setAlignment(Pos.BOTTOM_CENTER);
         hBox.setSpacing(10);
         hBox.getChildren().add(labelSubmitting);
         hBox.getChildren().add(submit);
-        this.add(hBox, 1, 3);
+        this.add(hBox, 1, 5);
     }
 
     private void initBindings() {
@@ -85,6 +94,7 @@ public class MainWindowView extends GridPane {
 
         this.username.textProperty().bindBidirectional(vm.usernameProperty());
         this.password.textProperty().bindBidirectional(vm.passwordProperty());
+        this.url.textProperty().bindBidirectional(vm.urlProperty());
 
         this.submit.armedProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
@@ -93,6 +103,7 @@ public class MainWindowView extends GridPane {
         });
 
         this.username.editableProperty().bind(vm.submittingProperty().not());
+        this.url.editableProperty().bind(vm.submittingProperty().not());
         vm.submittingProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue) {
                 this.labelSubmitting.textProperty().setValue("Submitting....");
@@ -100,5 +111,7 @@ public class MainWindowView extends GridPane {
                 this.labelSubmitting.textProperty().setValue("Login failed");
             }
         });
+
+        this.resultLabel.textProperty().bind(vm.resultProperty());
     }
 }
