@@ -3,6 +3,19 @@ package org.st.shc;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.st.shc.components.MainWindowView;
+import org.st.shc.components.MainWindowViewModel;
+import org.st.shc.di.HttpClientServiceConfiguration;
+import org.st.shc.framework.bean.BeanDefinition;
+import org.st.shc.framework.bean.BeanDefinitionAlreadyExistedException;
+import org.st.shc.framework.bean.BeanFactory;
+import org.st.shc.services.HttpClientService;
+import org.st.shc.services.HttpRequestModel;
+
+import java.net.http.HttpResponse;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 /**
  * JavaFX App
@@ -10,7 +23,18 @@ import javafx.stage.Stage;
 public class App extends Application {
 
     @Override
-    public void start(Stage stage) {
+    public void start(Stage stage) throws Exception {
+
+        BeanFactory beanFactory = new BeanFactory();
+        initBeanDefinitions(beanFactory);
+        beanFactory.instantEveryBeans();
+
+        HttpClientService httpClientService = beanFactory.getBean(HttpClientService.class);
+        HttpRequestModel m = new HttpRequestModel();
+        m.setUrl("https://www.baidu.com");
+        m.setMethod(HttpRequestModel.HttpMethod.GET);
+        CompletableFuture<HttpResponse<String>> future = httpClientService.httpCall(m);
+        future.whenComplete((stringHttpResponse, throwable) -> System.out.println(stringHttpResponse.body()));
 
         MainWindowViewModel vm = new MainWindowViewModel();
         vm.setUsername("aaa");
@@ -27,6 +51,18 @@ public class App extends Application {
         stage.setMinHeight(300);
         stage.setMinWidth(250);
         stage.show();
+    }
+
+    private void initBeanDefinitions(BeanFactory beanFactory) throws BeanDefinitionAlreadyExistedException {
+        Stream<HttpClientServiceConfiguration> providers = Stream.of(
+                new HttpClientServiceConfiguration()
+        );
+        List<BeanDefinition<?>> definitions = providers
+                .flatMap(v -> v.getDefinitions().stream())
+                .toList();
+        for (BeanDefinition<?> definition : definitions) {
+            beanFactory.addBeanDefinition(definition);
+        }
     }
 
     public static void main(String[] args) {
