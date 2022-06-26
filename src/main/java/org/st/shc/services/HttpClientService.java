@@ -7,6 +7,7 @@ import org.st.shc.framework.concurrent.ExecutorsBuilder;
 import org.st.shc.framework.concurrent.ThreadFactoryWithThreadId;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -83,22 +84,35 @@ public class HttpClientService implements AutoCloseable {
             }
         }
 
+        final URI uri;
+        try {
+            String url = request.url();
+            if (!url.startsWith("http")) {
+                url = "http://" + url;
+            }
+            uri = new URI(url);
+        } catch (URISyntaxException e) {
+            CompletableFuture<HttpResponse<String>> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
+        }
+
         return switch (request.method()) {
             case GET -> client.sendAsync(builder
                     .GET()
-                    .uri(new URI(request.url()))
+                    .uri(uri)
                     .build(), HttpResponse.BodyHandlers.ofString());
             case POST -> client.sendAsync(builder
                     .POST(body.asBodyPublisher())
-                    .uri(new URI(request.url()))
+                    .uri(uri)
                     .build(), HttpResponse.BodyHandlers.ofString());
             case PUT -> client.sendAsync(builder
                     .PUT((body.asBodyPublisher()))
-                    .uri(new URI(request.url()))
+                    .uri(uri)
                     .build(), HttpResponse.BodyHandlers.ofString());
             case DELETE -> client.sendAsync(builder
                     .DELETE()
-                    .uri(new URI(request.url()))
+                    .uri(uri)
                     .build(), HttpResponse.BodyHandlers.ofString());
         };
     }
