@@ -16,6 +16,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 声明 HttpClientService 创建方式
+ *
  * @author abomb4 2022-06-25
  */
 public class HttpClientServiceConfiguration implements BeanDefinitionsProvider {
@@ -23,6 +25,7 @@ public class HttpClientServiceConfiguration implements BeanDefinitionsProvider {
     /** Slf4J */
     private static final Logger log = LoggerFactory.getLogger(HttpClientServiceConfiguration.class);
 
+    /** 彬名称 */
     public static final String BEAN_NAME_EXECUTOR_NAME = "httpClientServiceExecutor";
 
     @Override
