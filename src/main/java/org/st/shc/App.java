@@ -1,22 +1,31 @@
 package org.st.shc;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.st.shc.components.MainWindowView;
 import org.st.shc.components.MainWindowViewModel;
 import org.st.shc.di.HttpClientServiceConfiguration;
+import org.st.shc.di.I18nConfiguration;
 import org.st.shc.framework.bean.BeanDefinition;
 import org.st.shc.framework.bean.BeanDefinitionAlreadyExistedException;
 import org.st.shc.framework.bean.BeanFactory;
+import org.st.shc.framework.bean.helper.BeanDefinitionsProvider;
+import org.st.shc.framework.concurrent.ExecutorsBuilder;
+import org.st.shc.framework.i18n.I18n;
+import org.st.shc.framework.i18n.I18nManageable;
 import org.st.shc.services.HttpClientRequest;
 import org.st.shc.services.HttpClientService;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -24,7 +33,14 @@ import java.util.stream.Stream;
  */
 public class App extends Application {
 
+    /** Bean Factory */
     BeanFactory beanFactory = new BeanFactory();
+
+    /** bean 提供方 */
+    Stream<BeanDefinitionsProvider> providers = Stream.of(
+            new HttpClientServiceConfiguration(),
+            new I18nConfiguration()
+    );
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -32,16 +48,12 @@ public class App extends Application {
         initBeanDefinitions(beanFactory);
         beanFactory.instantEveryBeans();
 
-        HttpClientService httpClientService = beanFactory.getBean(HttpClientService.class);
-        HttpClientRequest m = HttpClientRequest.builder()
-                .setUrl("https://www.baidu.com")
-                .build();
-        CompletableFuture<HttpResponse<String>> future = httpClientService.httpCall(m);
-        future.whenComplete((stringHttpResponse, throwable) -> System.out.println(stringHttpResponse.body()));
-
         MainWindowViewModel vm = new MainWindowViewModel();
 
-        MainWindowView view = new MainWindowView(vm, httpClientService, ResourceBundle.getBundle("i18n/lang"));
+        MainWindowView view = new MainWindowView(
+                vm,
+                beanFactory.getBean(HttpClientService.class),
+                beanFactory.getBean(I18nManageable.class));
 
         view.init();
 
@@ -53,9 +65,10 @@ public class App extends Application {
         stage.setMinWidth(470);
         stage.show();
         stage.showingProperty().addListener((observable, oldValue, newValue) -> {
-            System.out.println(newValue);
             try {
-                view.close();
+                if (!newValue) {
+                    view.close();
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -69,9 +82,6 @@ public class App extends Application {
     }
 
     private void initBeanDefinitions(BeanFactory beanFactory) throws BeanDefinitionAlreadyExistedException {
-        Stream<HttpClientServiceConfiguration> providers = Stream.of(
-                new HttpClientServiceConfiguration()
-        );
         List<BeanDefinition<?>> definitions = providers
                 .flatMap(v -> v.getDefinitions().stream())
                 .toList();

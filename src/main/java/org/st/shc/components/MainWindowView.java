@@ -15,10 +15,13 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import lombok.extern.slf4j.Slf4j;
+import org.st.shc.framework.i18n.I18n;
+import org.st.shc.framework.i18n.I18nManageable;
 import org.st.shc.services.HttpClientService;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -30,7 +33,7 @@ public class MainWindowView extends BorderPane implements Closeable {
 
     private final MainWindowViewModel vm;
     private final HttpClientService httpClientService;
-    private final ResourceBundle lang;
+    private final I18nManageable lang;
 
     private boolean inited = false;
 
@@ -63,7 +66,7 @@ public class MainWindowView extends BorderPane implements Closeable {
     private SplitPane.Divider centerSplitDivider1;
     // endregion --------- layouts ----------
 
-    public MainWindowView(MainWindowViewModel vm, HttpClientService httpClientService, ResourceBundle lang) {
+    public MainWindowView(MainWindowViewModel vm, HttpClientService httpClientService, I18nManageable lang) {
         this.vm = Objects.requireNonNull(vm);
         this.lang = Objects.requireNonNull(lang, "lang cannot be null");
         this.httpClientService = Objects.requireNonNull(httpClientService, "httpClientService cannot be null");
@@ -78,20 +81,26 @@ public class MainWindowView extends BorderPane implements Closeable {
     }
 
     private void initComponents() {
-        this.menuItemImport = new MenuItem("Menu");
-        this.menuFile = new Menu("File", null, this.menuItemImport);
-        this.menuItemAbout = new MenuItem("About");
-        this.menuHelp = new Menu("Help", null, this.menuItemAbout);
+        this.menuItemImport = new MenuItem();
+
+        this.menuFile = new Menu();
+        this.menuFile.getItems().add(this.menuItemImport);
+
+        this.menuItemAbout = new MenuItem();
+
+        this.menuHelp = new Menu();
+        this.menuHelp.getItems().add(this.menuItemAbout);
+
         this.menuBar = new MenuBar(this.menuFile, this.menuHelp);
         this.menuBar.useSystemMenuBarProperty().set(true);
 
-        this.aboutScene = new Scene(new Label("i9oasjdifoasdjiofjsdaf"));
+        Label aboutLabel = new Label("i9oasjdifoasdjiofjsdaf");
+        this.aboutScene = new Scene(aboutLabel);
         this.aboutStage = new Stage(StageStyle.UTILITY);
         this.aboutStage.setScene(this.aboutScene);
         this.aboutStage.setMinWidth(300);
         this.aboutStage.setMinHeight(300);
         this.aboutStage.setResizable(false);
-        this.aboutStage.setTitle("About");
 
         this.leftTabHistory = new Tab("History");
         this.leftTabPane = new TabPane(leftTabHistory);
@@ -109,6 +118,13 @@ public class MainWindowView extends BorderPane implements Closeable {
         this.mainVbox = new VBox();
         this.centerSplitPane = new SplitPane(this.leftTabPane, this.mainTabPane);
         this.centerSplitPane.getDividers().stream().findFirst().ifPresent(d -> d.setPosition(0.2));
+
+        this.lang.bind(this.menuFile, "menu.file");
+        this.lang.bind(this.menuItemImport, "menu.file.import");
+        this.lang.bind(this.menuHelp, "menu.help");
+        this.lang.bind(this.menuItemAbout, "menu.help.about");
+        this.aboutStage.titleProperty().bind(this.lang.r("about.title"));
+        this.lang.bind(aboutLabel, "about.content");
     }
 
     private void initLayout() {
@@ -151,6 +167,16 @@ public class MainWindowView extends BorderPane implements Closeable {
                 this.aboutStage.show();
             }
         });
+
+        this.menuItemImport.setOnAction(event -> {
+            Locale locale = this.lang.getLocale();
+            if (Locale.CHINA.equals(locale)) {
+                this.lang.reload(Locale.US);
+            } else {
+                this.lang.reload(Locale.CHINA);
+            }
+        });
+
         this.visibleProperty().addListener((observable, oldValue, newValue) -> {
             if (!newValue && this.aboutStage.isShowing()) {
                 this.aboutStage.close();

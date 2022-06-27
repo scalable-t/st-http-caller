@@ -12,6 +12,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import org.st.shc.framework.i18n.I18n;
 import org.st.shc.services.HttpClientRequest;
 import org.st.shc.services.HttpClientService;
 
@@ -36,18 +37,22 @@ public class HttpPanel extends StackPane {
     private final Button btnSend;
 
     private final HttpClientService httpClientService;
-    private final ResourceBundle lang;
+    private final I18n lang;
 
-    public HttpPanel(HttpClientService httpClientService, ResourceBundle lang) {
+    public HttpPanel(HttpClientService httpClientService, I18n lang) {
         this.httpClientService = Objects.requireNonNull(httpClientService, "httpClientService cannot be null");
         this.lang = Objects.requireNonNull(lang, "lang cannot be null");
         this.grid = new GridPane();
-        this.labelUrl = new Label(lang.getString("http.url"));
+        this.labelUrl = new Label();
         this.fieldUrl = new TextField("https://www.baidu.com");
-        this.labelBody = new Label(lang.getString("http.body"));
+        this.labelBody = new Label();
         this.fieldBody = new TextArea("{\n  \"aaa\": \"111\"\n}");
         this.fieldResponseBody = new TextArea("");
-        this.btnSend = new Button(lang.getString("http.send"));
+        this.btnSend = new Button();
+
+        lang.bind(this.labelUrl, "http.url");
+        lang.bind(this.labelBody, "http.body");
+        lang.bind(this.btnSend, "http.send");
 
         this.initLayout();
         this.initBindings();
